@@ -1,14 +1,92 @@
-import React from 'react';
-import Counter from './Counter';
-import InputSample from './InputSample';
+import React, {useRef, useState} from 'react';
+import CreateUser from './CreateUser';
+import UserList from './UserList';
+
+// import Counter from './Counter';
+// import InputSample from './InputSample';
 // import Hello from './Hello';
 // import Wrapper from './Wrapper';
 // import Wrapper from './Wrapper';
 
 function App() {
+  const [ inputs, setInputs] = useState( {
+    username: "",
+    email: "",
+  });
+  const { username, email} = inputs;
+  const onChange = e => {
+    const {name, value} = e.target;
+    setInputs({
+      ...inputs,
+      [name]: value
+    });
+  }
+  const [users, setUsers] = useState([
+    {
+        id: 1,
+        username: 'velopert',
+        email: 'public.velopert@gmail.com',
+        active: true
+    },
+    {
+        id: 2,
+        username: 'tester',
+        email: 'tester@example.com',
+        active: false
+    },
+    {
+        id: 3,
+        username: 'liz',
+        email: 'liz@example.com',
+        active: false
+    }
+  ]);
+
+  const nextId = useRef(4);
+
+  const onCreate = () => {
+    const user = {
+      id: nextId.current,
+      username,
+      email,
+    }
+    // pusr를 사용하면 안됨... 업데이트가 되지 않음....ㅠㅠㅠ
+    // setUsers([...users, user]);
+    setUsers(users.concat(user));
+    setInputs({
+      usernae: '',
+      email: ''
+    });
+    console.log(nextId.current); // 4
+    nextId.current += 1;
+  }
+
+  const onRemove = id => {
+    // 만족을 하면 새로운 배열을 생성, 그렇지 않다면 배열에 넣지 않는다.
+    setUsers(users.filter(user => user.id !== id));
+  };
+
+  const onToggle = (id) => {
+    setUsers(users.map(
+      user => user.id === id
+      // 기존의 내용을 수정할때, 전체를 다 수정하는 것이 아닌 덮어 씌워주는 형태로 수정을 하게 된다.
+      ? { ...user, active: !user.active }
+      : user
+    ));
+  }
+
+
   return (
       // {/* isSpecial에 default값은 true이다. */}
-      <InputSample />
+      <>
+        <CreateUser 
+          username={username} 
+          email={email} 
+          onChange={onChange} 
+          onCreate={onCreate} 
+        />
+        <UserList users={users}  onRemove={onRemove} onToggle={onToggle}/>
+      </>
   );
 }
 
