@@ -1,6 +1,7 @@
-import React, {useRef, useState, useMemo } from 'react';
+import React, {useRef, useReducer, useMemo, useCallback } from 'react';
 import CreateUser from './CreateUser';
 import UserList from './UserList';
+import useInputs from './uesInputs';
 
 // import Counter from './Counter';
 // import InputSample from './InputSample';
@@ -11,20 +12,13 @@ function countActiveUsers (users) {
   console.log('활성 사용자 수를 세는 중');
   return users.filter(user => user.active).length;
 }
-function App() {
-  const [ inputs, setInputs] = useState( {
-    username: "",
-    email: "",
-  });
-  const { username, email} = inputs;
-  const onChange = e => {
-    const {name, value} = e.target;
-    setInputs({
-      ...inputs,
-      [name]: value
-    });
-  }
-  const [users, setUsers] = useState([
+
+const initialState = {
+  // inputs:  {
+  //   username: "",
+  //   email: "",
+  // },
+  users: [
     {
         id: 1,
         username: 'velopert',
@@ -43,53 +37,151 @@ function App() {
         email: 'liz@example.com',
         active: false
     }
-  ]);
+  ]
+}
 
+function reducer(state, action) {
+  switch(action.type) {
+    // case 'CHANGE_INPUT':
+    //   return {
+    //     ...state,
+    //     inputs: {
+    //       ...state.inputs,
+    //       [action.name]: action.value
+    //     }
+    //   };
+    case 'CREATE_USER':
+      return {
+        inputs: initialState.inputs,
+        users: state.users.concat(action.user)
+      };
+    case 'TOGGLE_USER':
+      return {
+        ...state,
+        users: state.users.map(user => user.id === action.id
+          ? { ...user, active: !user.active }
+          : user)
+      };
+    case 'REMOVE_USER':
+      return {
+        ...state,
+        users: state.users.filter(user => user.id !== action.id)
+      }
+    default:
+      throw new Error('unHandled action');
+  }
+}
+function App() {
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const [form, onChange, reset] = useInputs({
+    username: '',
+    email: '',
+  });
+  const { username, email } = form;
   const nextId = useRef(4);
+  const { users } = state;
+  // const { username, email } = state.inputs;
 
-  const onCreate = () => {
-    const user = {
-      id: nextId.current,
-      username,
-      email,
-    }
-    // pusr를 사용하면 안됨... 업데이트가 되지 않음....ㅠㅠㅠ
-    // setUsers([...users, user]);
-    setUsers(users.concat(user));
-    setInputs({
-      usernae: '',
-      email: ''
+
+  // const onChange = useCallback(e => {
+  //   const {name, value} = e.target;
+  //   dispatch({
+  //     type: 'CHANGE_INPUT',
+  //     name,
+  //     value
+  //   })
+  // }, []);
+
+  const onCreate = useCallback(() => {
+    dispatch({
+      type: 'CREATE_USER',
+      user: {
+        id: nextId.current,
+        username,
+        email,
+      }
     });
-    console.log(nextId.current); // 4
-    nextId.current += 1;
-  }
+    nextId.current +=1;
+    reset();
+  }, [username, email, reset]);
 
-  const onRemove = id => {
-    // 만족을 하면 새로운 배열을 생성, 그렇지 않다면 배열에 넣지 않는다.
-    setUsers(users.filter(user => user.id !== id));
-  };
+  const onToggle = useCallback(id => {
+    dispatch({
+      type: 'TOGGLE_USER',
+      id
+    });
+  }, []);
 
-  const onToggle = (id) => {
-    setUsers(users.map(
-      user => user.id === id
-      // 기존의 내용을 수정할때, 전체를 다 수정하는 것이 아닌 덮어 씌워주는 형태로 수정을 하게 된다.
-      ? { ...user, active: !user.active }
-      : user
-    ));
-  }
+  const onRemove = useCallback(id => {
+    dispatch({
+      type: 'REMOVE_USER',
+      id
+    });
+  }, []);
 
-  const count = useMemo( () =>countActiveUsers(users), [users]);
+  const count = useMemo( () => countActiveUsers(users), [users])
+
+  // const [ inputs, setInputs] = useState( {
+  //   username: "",
+  //   email: "",
+  // });
+  // const { username, email} = inputs;
+  // const onChange = useCallback(e => {
+  //   const {name, value} = e.target;
+  //   setInputs({
+  //     ...inputs,
+  //     [name]: value
+  //   });
+  // }, [inputs]);
+  // const [users, setUsers] = useState();
+
+  // const nextId = useRef(4);
+
+  // const onCreate = useCallback(() => {
+  //   const user = {
+  //     id: nextId.current,
+  //     username,
+  //     email,
+  //   }
+  //   // pusr를 사용하면 안됨... 업데이트가 되지 않음....ㅠㅠㅠ
+  //   // setUsers([...users, user]);
+  //   setUsers(users => users.concat(user));
+  //   setInputs({
+  //     usernae: '',
+  //     email: ''
+  //   });
+  //   console.log(nextId.current); // 4
+  //   nextId.current += 1;
+  // }, [username, email]);
+  // // deps를 적어주지 않으면 최신상태를 참조하는 것이 아닌 이전의 상태를 참조하게 된다.
+
+  // const onRemove = useCallback(id => {
+  //   // 만족을 하면 새로운 배열을 생성, 그렇지 않다면 배열에 넣지 않는다.
+  //   setUsers(users => users.filter(user => user.id !== id));
+  // }, []);
+
+  // const onToggle = useCallback((id) => {
+  //   setUsers(users => users.map(
+  //     user => user.id === id
+  //     // 기존의 내용을 수정할때, 전체를 다 수정하는 것이 아닌 덮어 씌워주는 형태로 수정을 하게 된다.
+  //     ? { ...user, active: !user.active }
+  //     : user
+  //   ));
+  // }, []);
+
+  // const count = useMemo( () =>countActiveUsers(users), [users]);
   return (
       // {/* isSpecial에 default값은 true이다. */}
       <>
         <CreateUser 
-          username={username} 
-          email={email} 
-          onChange={onChange} 
-          onCreate={onCreate} 
+          username = {username} email={email} onChange={onChange} onCreate={onCreate}
+          // username={username} 
+          // email={email} 
+          // onChange={onChange} 
+          // onCreate={onCreate} 
         />
-        <UserList users={users}  onRemove={onRemove} onToggle={onToggle}/>
-        <div>활성 사용자 수: {count}</div>
+        <UserList users={ users } onRemove={onRemove} onToggle={onToggle}/*{ user }  onRemove={onRemove} onToggle={onToggle}*/ />
+        <div>활성 사용자 수: {count}{/*{count}*/}</div>
       </>
   );
 }

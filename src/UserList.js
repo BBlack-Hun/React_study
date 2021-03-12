@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 
-function User( {user, onRemove, onToggle}) {
+const User = React.memo(function User( {user, onRemove, onToggle}) {
     // useEffect(() => {
     //     console.log('컴포넌트가 화면에 나타남');
     //     // props로 받은 값을 -> state로
@@ -23,6 +23,8 @@ function User( {user, onRemove, onToggle}) {
         })
     }, [user]);
     const {username, email, id, active} = user;
+
+
     return (
         <div>
             <b style={{
@@ -39,7 +41,7 @@ function User( {user, onRemove, onToggle}) {
             <button onClick={() => onRemove(id)}>삭제</button>
         </div>
     );
-}
+});
 
 function UserList( {users, onRemove, onToggle}) {
     
@@ -61,4 +63,4 @@ function UserList( {users, onRemove, onToggle}) {
     )
 }
 
-export default UserList;
+export default React.memo(UserList, (preProps, nextProps) => nextProps.users === preProps.users);
